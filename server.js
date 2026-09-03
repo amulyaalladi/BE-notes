@@ -1,6 +1,7 @@
 const app = require("./app");
 const { MONGODB_URI, PORT, HOST } = require("./utils/config");
 const mongoose = require("mongoose");
+//const {PORT,HOST}=require('./utils/config')
 
 
 mongoose.connect(MONGODB_URI)

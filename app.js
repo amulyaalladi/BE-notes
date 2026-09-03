@@ -19,11 +19,15 @@ app.use(cors({origin:'http://localhost:5173',
     credentials:true
 }));
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://project1notesapp.netlify.app'
+];
 // use the middleware
 app.use(logger);
 
 
-app.use('/api/notes', require('./routes/notesRouter'));
+app.use('/notes', require('./routes/notesRouter'));
 app.use('/auth', authRouter);
 app.use(errorRoute);
 
