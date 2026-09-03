@@ -2,29 +2,16 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const User = require('../../models/user');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+//const nodemailer = require('nodemailer');
 const {
     JWT_SECRET,
     CLIENT_URL,
-    SMTP_HOST,
-    SMTP_PORT,
-    SMTP_USER,
-    SMTP_PASS,
-    SMTP_FROM,
+   
 } = require('../../utils/config');
 
 // Only build a real mail transporter if SMTP is actually configured.
 // Otherwise forgotPassword() logs the reset link to the console instead,
 // so the flow is still testable without a mail account set up.
-const mailer =
-    SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS
-        ? nodemailer.createTransport({
-              host: SMTP_HOST,
-              port: Number(SMTP_PORT),
-              secure: Number(SMTP_PORT) === 465,
-              auth: { user: SMTP_USER, pass: SMTP_PASS },
-          })
-        : null;
 
 const authController = {
     register: async (req, res) => {
