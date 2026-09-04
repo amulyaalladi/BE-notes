@@ -70,7 +70,12 @@ const authController = {
                 JWT_SECRET,
                 { expiresIn: '1h' }
             );
-            res.cookie('token', token, { httpOnly: true });
+            const isProd = process.env.NODE_ENV === 'production';
+            res.cookie('token', token, {
+                httpOnly: true,
+                sameSite: isProd ? 'None' : 'Lax',
+                secure: isProd,
+            });
             return res.status(200).json({
                 message: 'Login successful.',
                 token,
