@@ -1,5 +1,8 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const mailer = require('../../utils/mailer'); // Adjust path to match your folder structure
+//const crypto = require('crypto');
+//const User = require('../models/User');
 const User = require('../../models/user');
 const jwt = require('jsonwebtoken');
 //const nodemailer = require('nodemailer');
@@ -111,52 +114,53 @@ const authController = {
     // email exists, so this endpoint can't be used to check which emails
     // are registered.
     forgotPassword: async (req, res) => {
-        try {
-            const { email } = req.body;
-            if (!email) {
-                return res.status(400).json({ message: 'Email is required.' });
-            }
-
-            const genericResponse = {
-                message: 'If that email is registered, a password reset link has been sent.',
-            };
-
-            const user = await User.findOne({ email });
-            if (!user) {
-                return res.status(200).json(genericResponse);
-            }
-
-            // Raw token goes in the emailed link; only its hash is stored,
-            // same pattern as storing a hashed password.
-            const rawToken = crypto.randomBytes(32).toString('hex');
-            const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-            user.resetPasswordToken = hashedToken;
-            user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
-            await user.save();
-
-            const resetUrl = `${CLIENT_URL}/reset-password/${rawToken}`;
-
-            if (mailer) {
-                await mailer.sendMail({
-                    from: SMTP_FROM,
-                    to: user.email,
-                    subject: 'Reset your Notes App password',
-                    html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p>
-                           <p><a href="${resetUrl}">${resetUrl}</a></p>`,
-                });
-            } else {
-                // No SMTP configured — surface the link in the server logs
-                // so the flow is testable in dev.
-                console.log(`[forgotPassword] SMTP not configured. Reset link for ${email}: ${resetUrl}`);
-            }
-
-            return res.status(200).json(genericResponse);
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Error processing password reset request.' });
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required.' });
         }
-    },
+
+        const genericResponse = {
+            message: 'If that email is registered, a password reset link has been sent.',
+        };
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(200).json(genericResponse);
+        }
+
+        // Generate a secure raw token and its SHA-256 hash for database storage
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+        user.resetPasswordToken = hashedToken;
+        user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+        await user.save();
+
+        const resetUrl = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
+
+        if (mailer) {
+            await mailer.sendMail({
+                from: process.env.SMTP_USER,
+                to: user.email,
+                subject: 'Reset your Notes App password',
+                html: `
+                    <p>You requested a password reset.</p>
+                    <p>Click the link below to reset your password. This link expires in 1 hour:</p>
+                    <p><a href="${resetUrl}">${resetUrl}</a></p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                `,
+            });
+        } else {
+            console.log(`[forgotPassword] SMTP not configured. Reset link for ${email}: ${resetUrl}`);
+        }
+
+        return res.status(200).json(genericResponse);
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ message: 'Error processing password reset request.' });
+    }
+},
 
     // POST /auth/reset-password/:token  { email, password }
     resetPassword: async (req, res) => {
